@@ -1,5 +1,13 @@
 var request = require('request');
 var cheerio = require('cheerio');
+var mysql = require('mysql');
+
+var connection = mysql.createConnection({
+  host: 'localhost',
+  user: 'root',
+  password: 'r',
+  database: 'web-crawler'
+});
 
 
 function crawl() {
@@ -8,7 +16,8 @@ function crawl() {
     if (error) {
       console.log("Check your connection");
     }
-    if(request.statusCode === 200){
+    if (response.statusCode == 200) {
+      console.log("New Connection at: " + new Date());
       parseData(body);
     }
   });
@@ -56,8 +65,27 @@ function parseData(body) {
 }
 
 function saveToDatabase(data) {
-  console.log(data);
+  var sql = "INSERT INTO stocks(symbol, price, change_amount, change_percent) VALUES(?, ?, ?, ?);";
+  connection.query(sql, [data.symbol, data.price, data.changeAmount, data.changePercent], function(error, result, fields) {
+    if (error) throw error;
+  });
 }
 
+function makeDatabase() {
+  var schema = 'CREATE TABLE stocks( \
+      id             INT NOT NULL AUTO_INCREMENT, \
+      symbol         VARCHAR(255) NOT NULL, \
+      price          VARCHAR(255) NOT NULL, \
+      change_amount  VARCHAR(255) NOT NULL, \
+      change_percent VARCHAR(255) NOT NULL, \
+      created_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, \
+      PRIMARY KEY    (id) \
+    );';
 
+  connection.query(schema, function(error, result, fields) {
+    if (error) throw error;
+  });
+}
+
+makeDatabase();
 var handle = setInterval(crawl, 300000);
